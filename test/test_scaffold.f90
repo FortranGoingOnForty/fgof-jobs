@@ -24,17 +24,22 @@ program test_scaffold
   if (handle%process_group /= 0) error stop "job handle should start with process group zero"
   if (handle%configured) error stop "job handle should not start configured"
   if (handle%running) error stop "job handle should not start running"
+  if (handle%stopped) error stop "job handle should not start stopped"
   if (handle%finished) error stop "job handle should not start finished"
   if (handle%background) error stop "job handle should not start as background"
   if (handle%owns_process) error stop "job handle should not own a process by default"
+  if (handle%owns_process_group) error stop "job handle should not own a process group by default"
   if (handle%cleanup_needed) error stop "job handle should not need cleanup by default"
 
   result_value = clear_job_result()
+  if (result_value%pid /= 0) error stop "job result should start with pid zero"
+  if (result_value%process_group /= 0) error stop "job result should start with process group zero"
   if (result_value%exit_code /= 0) error stop "job result should start with exit code zero"
   if (result_value%signal /= 0) error stop "job result should start with signal zero"
   if (result_value%exited) error stop "job result should not start exited"
   if (result_value%signaled) error stop "job result should not start signaled"
   if (result_value%stopped) error stop "job result should not start stopped"
+  if (result_value%continued) error stop "job result should not start continued"
   if (result_value%available) error stop "job result should not start available"
 
   if (jobs_backend_name() /= "posix") error stop "jobs backend should report the planned POSIX-first backend"
