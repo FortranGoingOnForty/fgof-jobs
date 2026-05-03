@@ -23,13 +23,14 @@ Future scope:
 
 ## Status
 
-Initial scaffold is in place.
+Sprint 01 is in place.
 
 Tracked today:
 
 - package layout, CI, and standalone repo setup
 - foundational job types for specs, handles, and results
-- backend naming scaffold for a future POSIX-first implementation
+- explicit configure, attach, complete, and release lifecycle helpers
+- ownership and cleanup-boundary helpers for later wait and process-group work
 - focused scaffold coverage in `fpm test`
 
 ## Public API Shape
@@ -50,13 +51,28 @@ Current public procedures:
 - `clear_job_spec`
 - `clear_job_handle`
 - `clear_job_result`
+- `make_job_spec`
+- `configure_job`
+- `attach_job`
+- `complete_job`
+- `release_job`
+- `job_is_configured`
+- `job_is_running`
+- `job_is_finished`
+- `job_needs_cleanup`
 - `jobs_backend_name`
 
 Current semantics:
 
 - `job_spec` carries the intended command, argument vector, and foreground/background intent
-- `job_handle` is the future ownership point for a launched job or process group
-- `job_result` is the future shape for wait/exit/signal status reporting
+- `make_job_spec()` builds a reusable spec value for later launch or attach work
+- `configure_job()` resets a handle into a configured-but-not-running state from a spec
+- `attach_job()` records pid/process-group identity for an already launched job and establishes ownership expectations
+- `complete_job()` stores a terminal result and clears runtime cleanup obligations
+- `release_job()` drops cleanup ownership while preserving runtime tracking metadata
+- `job_is_configured()`, `job_is_running()`, `job_is_finished()`, and `job_needs_cleanup()` expose the first stable lifecycle predicates
+- `job_handle` is now the explicit ownership point for a launched job or process group
+- `job_result` is the shape for terminal exit/signal/stop status reporting once a result becomes available
 - `jobs_backend_name()` currently reports the planned backend family and exists to stabilize the package surface early
 
 ## Build And Test
