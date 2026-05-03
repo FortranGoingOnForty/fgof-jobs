@@ -7,6 +7,9 @@ module fgof_jobs_types
     character(len=:), allocatable :: argv(:)
     logical :: background = .false.
     logical :: new_process_group = .true.
+    integer :: signal_scope = 2
+    integer :: terminal_handoff = 1
+    logical :: resume_sends_sigcont = .true.
   end type job_spec
 
   type, public :: job_result
@@ -21,11 +24,22 @@ module fgof_jobs_types
     logical :: available = .false.
   end type job_result
 
+  type, public :: job_member
+    integer :: pid = 0
+    logical :: running = .false.
+    logical :: stopped = .false.
+    logical :: finished = .false.
+    type(job_result) :: result
+  end type job_member
+
   type, public :: job_handle
     type(job_spec) :: spec
     type(job_result) :: result
+    type(job_member), allocatable :: members(:)
     integer :: pid = 0
     integer :: process_group = 0
+    integer :: signal_scope = 2
+    integer :: terminal_handoff = 1
     logical :: configured = .false.
     logical :: running = .false.
     logical :: stopped = .false.
@@ -34,6 +48,7 @@ module fgof_jobs_types
     logical :: owns_process = .false.
     logical :: owns_process_group = .false.
     logical :: cleanup_needed = .false.
+    logical :: resume_sends_sigcont = .true.
   end type job_handle
 
 end module fgof_jobs_types
