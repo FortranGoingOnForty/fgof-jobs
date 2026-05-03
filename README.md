@@ -23,7 +23,7 @@ Future scope:
 
 ## Status
 
-Sprint 03 is in place.
+Sprint 04 is in place.
 
 Tracked today:
 
@@ -36,7 +36,9 @@ Tracked today:
 - grouped pipeline-member tracking on job handles
 - explicit signal-forwarding and terminal-handoff policy fields
 - pipeline-aware stop, continue, and completion aggregation
-- focused scaffold coverage in `fpm test`
+- tracked examples for lifecycle and pipeline state transitions
+- replacement-safe pipeline member attachment and cleaner group-stop member results
+- CI now runs both tests and tracked examples
 
 ## Public API Shape
 
@@ -96,6 +98,8 @@ Current semantics:
 - `job_handle` is now the explicit ownership point for a launched job group, and may track member-level pipeline state
 - `job_result` now carries pid/process-group identity plus exited, signaled, stopped, and continued wait outcomes
 - grouped pipeline jobs only finish once all tracked members have reached terminal outcomes
+- reattaching pipeline members replaces the previous tracked member set cleanly
+- group-scoped stop fanout preserves each tracked member pid in member-level results
 - `jobs_backend_name()` currently reports the planned backend family and exists to stabilize the package surface early
 
 ## Build And Test
@@ -103,6 +107,11 @@ Current semantics:
 ```bash
 fpm test
 ```
+
+Tracked examples:
+
+- [job_lifecycle_demo.f90](example/job_lifecycle_demo.f90)
+- [pipeline_tracking_demo.f90](example/pipeline_tracking_demo.f90)
 
 ## Supported Platforms
 
