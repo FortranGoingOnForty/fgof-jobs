@@ -23,7 +23,7 @@ Future scope:
 
 ## Status
 
-Sprint 02 is in place.
+Sprint 03 is in place.
 
 Tracked today:
 
@@ -33,6 +33,9 @@ Tracked today:
 - explicit process-group ownership tracking on job handles
 - wait-result constructors for exited, signaled, stopped, and continued outcomes
 - state-transition helpers that distinguish stopped jobs from terminal jobs
+- grouped pipeline-member tracking on job handles
+- explicit signal-forwarding and terminal-handoff policy fields
+- pipeline-aware stop, continue, and completion aggregation
 - focused scaffold coverage in `fpm test`
 
 ## Public API Shape
@@ -56,9 +59,11 @@ Current public procedures:
 - `make_job_spec`
 - `configure_job`
 - `attach_job`
+- `attach_pipeline_members`
 - `complete_job`
 - `observe_wait_result`
 - `release_job`
+- `clear_job_member`
 - `job_exit_result`
 - `job_signal_result`
 - `job_stop_result`
@@ -69,6 +74,10 @@ Current public procedures:
 - `job_is_finished`
 - `job_needs_cleanup`
 - `job_owns_process_group`
+- `job_signal_scope`
+- `job_resume_sends_sigcont`
+- `job_requires_terminal_handoff`
+- `pipeline_member_count`
 - `jobs_backend_name`
 
 Current semantics:
@@ -77,13 +86,16 @@ Current semantics:
 - `make_job_spec()` builds a reusable spec value for later launch or attach work
 - `configure_job()` resets a handle into a configured-but-not-running state from a spec
 - `attach_job()` records pid/process-group identity for an already launched job and establishes both process and process-group ownership expectations
+- `attach_pipeline_members()` binds one handle to multiple tracked member pids for pipeline-style jobs
 - `job_exit_result()`, `job_signal_result()`, `job_stop_result()`, and `job_continue_result()` build explicit wait outcomes for later launch or wait backends
-- `observe_wait_result()` applies non-terminal and terminal wait state transitions to a tracked handle
+- `observe_wait_result()` applies non-terminal and terminal wait state transitions to a tracked handle and now updates pipeline members too
 - `complete_job()` now models terminal completion only and clears runtime cleanup obligations after exit or signal outcomes
 - `release_job()` drops cleanup ownership while preserving runtime tracking metadata
 - `job_is_configured()`, `job_is_running()`, `job_is_stopped()`, `job_is_finished()`, `job_needs_cleanup()`, and `job_owns_process_group()` expose the current stable lifecycle predicates
-- `job_handle` is now the explicit ownership point for a launched job or process group
+- `job_signal_scope()`, `job_resume_sends_sigcont()`, and `job_requires_terminal_handoff()` make signal and terminal assumptions explicit for future backends
+- `job_handle` is now the explicit ownership point for a launched job group, and may track member-level pipeline state
 - `job_result` now carries pid/process-group identity plus exited, signaled, stopped, and continued wait outcomes
+- grouped pipeline jobs only finish once all tracked members have reached terminal outcomes
 - `jobs_backend_name()` currently reports the planned backend family and exists to stabilize the package surface early
 
 ## Build And Test
