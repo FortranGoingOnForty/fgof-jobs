@@ -192,6 +192,7 @@ contains
     if (size(pids) <= 0) return
     if (any(pids <= 0)) return
 
+    if (allocated(handle%members)) deallocate(handle%members)
     allocate(handle%members(size(pids)))
     do index_value = 1, size(pids)
       handle%members(index_value) = clear_job_member()
@@ -443,7 +444,7 @@ contains
           handle%members(index_value)%running = .false.
           handle%members(index_value)%stopped = .true.
           handle%members(index_value)%result = result_value
-          if (handle%members(index_value)%result%pid <= 0) handle%members(index_value)%result%pid = handle%members(index_value)%pid
+          handle%members(index_value)%result%pid = handle%members(index_value)%pid
           if (handle%members(index_value)%result%process_group <= 0) then
             handle%members(index_value)%result%process_group = handle%process_group
           end if
@@ -452,7 +453,7 @@ contains
         handle%members(member_index)%running = .false.
         handle%members(member_index)%stopped = .true.
         handle%members(member_index)%result = result_value
-        if (handle%members(member_index)%result%pid <= 0) handle%members(member_index)%result%pid = handle%members(member_index)%pid
+        handle%members(member_index)%result%pid = handle%members(member_index)%pid
         if (handle%members(member_index)%result%process_group <= 0) then
           handle%members(member_index)%result%process_group = handle%process_group
         end if
