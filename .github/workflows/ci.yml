@@ -68,3 +68,12 @@ jobs:
 
       - name: Run test suite
         run: fpm test --verbose
+
+      - name: Run examples
+        run: |
+          lifecycle_bin=$(find build -type f -path '*/example/job_lifecycle_demo' | head -n 1)
+          pipeline_bin=$(find build -type f -path '*/example/pipeline_tracking_demo' | head -n 1)
+          test -n "$lifecycle_bin"
+          test -n "$pipeline_bin"
+          "$lifecycle_bin"
+          "$pipeline_bin"

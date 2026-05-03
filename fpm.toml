@@ -9,6 +9,7 @@ description = "Background job and wait-model helpers for modern Fortran"
 [build]
 auto-executables = false
 auto-tests = true
+auto-examples = true
 
 [install]
 library = true
