@@ -422,10 +422,12 @@ contains
     if (allocated(handle%members)) then
       if (handle%signal_scope == FGOF_JOBS_SIGNAL_SCOPE_GROUP) then
         do index_value = 1, size(handle%members)
+          if (handle%members(index_value)%finished) cycle
           handle%members(index_value)%running = .true.
           handle%members(index_value)%stopped = .false.
         end do
       else if (member_index > 0) then
+        if (handle%members(member_index)%finished) return
         handle%members(member_index)%running = .true.
         handle%members(member_index)%stopped = .false.
       end if
@@ -441,6 +443,7 @@ contains
     if (allocated(handle%members)) then
       if (handle%signal_scope == FGOF_JOBS_SIGNAL_SCOPE_GROUP) then
         do index_value = 1, size(handle%members)
+          if (handle%members(index_value)%finished) cycle
           handle%members(index_value)%running = .false.
           handle%members(index_value)%stopped = .true.
           handle%members(index_value)%result = result_value
@@ -450,6 +453,7 @@ contains
           end if
         end do
       else if (member_index > 0) then
+        if (handle%members(member_index)%finished) return
         handle%members(member_index)%running = .false.
         handle%members(member_index)%stopped = .true.
         handle%members(member_index)%result = result_value

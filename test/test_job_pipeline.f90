@@ -62,6 +62,19 @@ program test_job_pipeline
   if (handle%members(2)%finished) error stop "terminal results should not finish untouched members"
   if (.not. job_needs_cleanup(handle)) error stop "partially finished pipelines should still need cleanup"
 
+  call observe_wait_result(handle, job_stop_result(20, pid=102, process_group=101))
+  if (.not. handle%members(1)%finished) error stop "group stop should not reopen finished members"
+  if (handle%members(1)%stopped) error stop "group stop should not mark finished members stopped"
+  if (.not. handle%members(1)%result%exited) error stop "group stop should preserve finished member results"
+  if (.not. handle%members(2)%stopped) error stop "group stop should still stop live members"
+  if (.not. handle%members(3)%stopped) error stop "group stop should still stop later live members"
+
+  call observe_wait_result(handle, job_continue_result(pid=101, process_group=101))
+  if (handle%members(1)%running) error stop "group continue should not resume finished members"
+  if (handle%members(1)%stopped) error stop "group continue should leave finished members terminal"
+  if (.not. handle%members(2)%running) error stop "group continue should resume live members"
+  if (.not. handle%members(3)%running) error stop "group continue should resume later live members"
+
   call complete_job(handle, job_exit_result(0, pid=102, process_group=101))
   call complete_job(handle, job_exit_result(0, pid=103, process_group=101))
   if (.not. job_is_finished(handle)) error stop "all finished members should finish the pipeline"
