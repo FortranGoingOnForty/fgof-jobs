@@ -21,7 +21,9 @@ program test_scaffold
   if (spec%background) error stop "job spec should start in foreground mode"
   if (.not. spec%new_process_group) error stop "job spec should default to a new process group"
   if (spec%signal_scope /= FGOF_JOBS_SIGNAL_SCOPE_GROUP) error stop "job spec should default to group-wide signal forwarding"
-  if (spec%terminal_handoff /= FGOF_JOBS_TERMINAL_HANDOFF_FOREGROUND) error stop "job spec should default to foreground terminal handoff"
+  if (spec%terminal_handoff /= FGOF_JOBS_TERMINAL_HANDOFF_FOREGROUND) then
+    error stop "job spec should default to foreground terminal handoff"
+  end if
   if (.not. spec%resume_sends_sigcont) error stop "job spec should default to resuming with SIGCONT"
 
   member = clear_job_member()
@@ -38,7 +40,9 @@ program test_scaffold
   if (handle%pid /= 0) error stop "job handle should start with pid zero"
   if (handle%process_group /= 0) error stop "job handle should start with process group zero"
   if (handle%signal_scope /= FGOF_JOBS_SIGNAL_SCOPE_GROUP) error stop "job handle should default to group-wide signal forwarding"
-  if (handle%terminal_handoff /= FGOF_JOBS_TERMINAL_HANDOFF_FOREGROUND) error stop "job handle should default to foreground terminal handoff"
+  if (handle%terminal_handoff /= FGOF_JOBS_TERMINAL_HANDOFF_FOREGROUND) then
+    error stop "job handle should default to foreground terminal handoff"
+  end if
   if (handle%configured) error stop "job handle should not start configured"
   if (handle%running) error stop "job handle should not start running"
   if (handle%stopped) error stop "job handle should not start stopped"
