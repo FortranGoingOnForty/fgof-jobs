@@ -23,14 +23,16 @@ Future scope:
 
 ## Status
 
-Sprint 01 is in place.
+Sprint 02 is in place.
 
 Tracked today:
 
 - package layout, CI, and standalone repo setup
 - foundational job types for specs, handles, and results
 - explicit configure, attach, complete, and release lifecycle helpers
-- ownership and cleanup-boundary helpers for later wait and process-group work
+- explicit process-group ownership tracking on job handles
+- wait-result constructors for exited, signaled, stopped, and continued outcomes
+- state-transition helpers that distinguish stopped jobs from terminal jobs
 - focused scaffold coverage in `fpm test`
 
 ## Public API Shape
@@ -55,11 +57,18 @@ Current public procedures:
 - `configure_job`
 - `attach_job`
 - `complete_job`
+- `observe_wait_result`
 - `release_job`
+- `job_exit_result`
+- `job_signal_result`
+- `job_stop_result`
+- `job_continue_result`
 - `job_is_configured`
 - `job_is_running`
+- `job_is_stopped`
 - `job_is_finished`
 - `job_needs_cleanup`
+- `job_owns_process_group`
 - `jobs_backend_name`
 
 Current semantics:
@@ -67,12 +76,14 @@ Current semantics:
 - `job_spec` carries the intended command, argument vector, and foreground/background intent
 - `make_job_spec()` builds a reusable spec value for later launch or attach work
 - `configure_job()` resets a handle into a configured-but-not-running state from a spec
-- `attach_job()` records pid/process-group identity for an already launched job and establishes ownership expectations
-- `complete_job()` stores a terminal result and clears runtime cleanup obligations
+- `attach_job()` records pid/process-group identity for an already launched job and establishes both process and process-group ownership expectations
+- `job_exit_result()`, `job_signal_result()`, `job_stop_result()`, and `job_continue_result()` build explicit wait outcomes for later launch or wait backends
+- `observe_wait_result()` applies non-terminal and terminal wait state transitions to a tracked handle
+- `complete_job()` now models terminal completion only and clears runtime cleanup obligations after exit or signal outcomes
 - `release_job()` drops cleanup ownership while preserving runtime tracking metadata
-- `job_is_configured()`, `job_is_running()`, `job_is_finished()`, and `job_needs_cleanup()` expose the first stable lifecycle predicates
+- `job_is_configured()`, `job_is_running()`, `job_is_stopped()`, `job_is_finished()`, `job_needs_cleanup()`, and `job_owns_process_group()` expose the current stable lifecycle predicates
 - `job_handle` is now the explicit ownership point for a launched job or process group
-- `job_result` is the shape for terminal exit/signal/stop status reporting once a result becomes available
+- `job_result` now carries pid/process-group identity plus exited, signaled, stopped, and continued wait outcomes
 - `jobs_backend_name()` currently reports the planned backend family and exists to stabilize the package surface early
 
 ## Build And Test
