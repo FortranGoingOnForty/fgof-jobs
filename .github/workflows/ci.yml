@@ -27,7 +27,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up Fortran toolchain
+      - name: Set up Linux Fortran toolchain
+        if: runner.os != 'macOS'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran gcc g++
+          echo "FC=$(command -v gfortran)" >> "$GITHUB_ENV"
+          echo "CC=$(command -v gcc)" >> "$GITHUB_ENV"
+          echo "CXX=$(command -v g++)" >> "$GITHUB_ENV"
+
+      - name: Set up macOS Fortran toolchain
+        if: runner.os == 'macOS'
         uses: fortran-lang/setup-fortran@v1
         with:
           compiler: gcc
