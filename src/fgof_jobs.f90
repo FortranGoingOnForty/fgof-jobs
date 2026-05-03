@@ -13,15 +13,22 @@ module fgof_jobs
     clear_job_spec, &
     complete_job, &
     configure_job, &
+    job_continue_result, &
+    job_exit_result, &
     job_handle, &
     job_is_configured, &
     job_is_finished, &
     job_is_running, &
+    job_is_stopped, &
     job_needs_cleanup, &
+    job_owns_process_group, &
     job_result, &
+    job_signal_result, &
     job_spec, &
+    job_stop_result, &
     jobs_backend_name, &
     make_job_spec, &
+    observe_wait_result, &
     release_job
 
 contains
@@ -42,20 +49,25 @@ contains
     handle%process_group = 0
     handle%configured = .false.
     handle%running = .false.
+    handle%stopped = .false.
     handle%finished = .false.
     handle%background = .false.
     handle%owns_process = .false.
+    handle%owns_process_group = .false.
     handle%cleanup_needed = .false.
   end function clear_job_handle
 
   function clear_job_result() result(result_value)
     type(job_result) :: result_value
 
+    result_value%pid = 0
+    result_value%process_group = 0
     result_value%exit_code = 0
     result_value%signal = 0
     result_value%exited = .false.
     result_value%signaled = .false.
     result_value%stopped = .false.
+    result_value%continued = .false.
     result_value%available = .false.
   end function clear_job_result
 
@@ -84,11 +96,12 @@ contains
     handle%background = spec%background
   end subroutine configure_job
 
-  subroutine attach_job(handle, pid, process_group, owns_process)
+  subroutine attach_job(handle, pid, process_group, owns_process, owns_process_group)
     type(job_handle), intent(inout) :: handle
     integer, intent(in) :: pid
     integer, intent(in), optional :: process_group
     logical, intent(in), optional :: owns_process
+    logical, intent(in), optional :: owns_process_group
 
     if (.not. handle%configured) return
     if (pid <= 0) return
@@ -110,9 +123,17 @@ contains
       handle%owns_process = .true.
     end if
 
+    if (present(owns_process_group)) then
+      handle%owns_process_group = owns_process_group
+    else
+      handle%owns_process_group = handle%owns_process .and. handle%spec%new_process_group .and. &
+                                  handle%process_group == pid
+    end if
+
     handle%running = .true.
+    handle%stopped = .false.
     handle%finished = .false.
-    handle%cleanup_needed = handle%owns_process
+    handle%cleanup_needed = handle%owns_process .or. handle%owns_process_group
     handle%result = clear_job_result()
   end subroutine attach_job
 
@@ -120,18 +141,56 @@ contains
     type(job_handle), intent(inout) :: handle
     type(job_result), intent(in) :: result_value
 
-    handle%result = result_value
-    handle%result%available = result_value%available .or. result_value%exited .or. &
-                              result_value%signaled .or. result_value%stopped
-    handle%running = .false.
-    handle%finished = handle%result%available
+    if (result_value%stopped .or. result_value%continued) then
+      return
+    end if
+
+    call observe_wait_result(handle, result_value)
+    handle%finished = handle%result%exited .or. handle%result%signaled
     handle%cleanup_needed = .false.
   end subroutine complete_job
+
+  subroutine observe_wait_result(handle, result_value)
+    type(job_handle), intent(inout) :: handle
+    type(job_result), intent(in) :: result_value
+
+    handle%result = result_value
+    handle%result%available = result_value%available .or. result_value%exited .or. &
+                              result_value%signaled .or. result_value%stopped .or. result_value%continued
+
+    if (handle%result%pid <= 0) handle%result%pid = handle%pid
+    if (handle%result%process_group <= 0) handle%result%process_group = handle%process_group
+
+    if (handle%result%continued) then
+      handle%running = .true.
+      handle%stopped = .false.
+      handle%finished = .false.
+      handle%cleanup_needed = handle%owns_process .or. handle%owns_process_group
+      return
+    end if
+
+    if (handle%result%stopped) then
+      handle%running = .false.
+      handle%stopped = .true.
+      handle%finished = .false.
+      handle%cleanup_needed = handle%owns_process .or. handle%owns_process_group
+      return
+    end if
+
+    if (handle%result%exited .or. handle%result%signaled) then
+      handle%running = .false.
+      handle%stopped = .false.
+      handle%finished = .true.
+      handle%cleanup_needed = .false.
+      return
+    end if
+  end subroutine observe_wait_result
 
   subroutine release_job(handle)
     type(job_handle), intent(inout) :: handle
 
     handle%owns_process = .false.
+    handle%owns_process_group = .false.
     handle%cleanup_needed = .false.
   end subroutine release_job
 
@@ -147,6 +206,12 @@ contains
     running = handle%configured .and. handle%running
   end function job_is_running
 
+  logical function job_is_stopped(handle) result(stopped)
+    type(job_handle), intent(in) :: handle
+
+    stopped = handle%configured .and. handle%stopped
+  end function job_is_stopped
+
   logical function job_is_finished(handle) result(finished)
     type(job_handle), intent(in) :: handle
 
@@ -158,6 +223,66 @@ contains
 
     needs_cleanup = handle%cleanup_needed
   end function job_needs_cleanup
+
+  logical function job_owns_process_group(handle) result(owns_group)
+    type(job_handle), intent(in) :: handle
+
+    owns_group = handle%owns_process_group
+  end function job_owns_process_group
+
+  function job_exit_result(exit_code, pid, process_group) result(result_value)
+    integer, intent(in) :: exit_code
+    integer, intent(in), optional :: pid
+    integer, intent(in), optional :: process_group
+    type(job_result) :: result_value
+
+    result_value = clear_job_result()
+    if (present(pid)) result_value%pid = pid
+    if (present(process_group)) result_value%process_group = process_group
+    result_value%exit_code = exit_code
+    result_value%exited = .true.
+    result_value%available = .true.
+  end function job_exit_result
+
+  function job_signal_result(signal, pid, process_group) result(result_value)
+    integer, intent(in) :: signal
+    integer, intent(in), optional :: pid
+    integer, intent(in), optional :: process_group
+    type(job_result) :: result_value
+
+    result_value = clear_job_result()
+    if (present(pid)) result_value%pid = pid
+    if (present(process_group)) result_value%process_group = process_group
+    result_value%signal = signal
+    result_value%signaled = .true.
+    result_value%available = .true.
+  end function job_signal_result
+
+  function job_stop_result(signal, pid, process_group) result(result_value)
+    integer, intent(in) :: signal
+    integer, intent(in), optional :: pid
+    integer, intent(in), optional :: process_group
+    type(job_result) :: result_value
+
+    result_value = clear_job_result()
+    if (present(pid)) result_value%pid = pid
+    if (present(process_group)) result_value%process_group = process_group
+    result_value%signal = signal
+    result_value%stopped = .true.
+    result_value%available = .true.
+  end function job_stop_result
+
+  function job_continue_result(pid, process_group) result(result_value)
+    integer, intent(in), optional :: pid
+    integer, intent(in), optional :: process_group
+    type(job_result) :: result_value
+
+    result_value = clear_job_result()
+    if (present(pid)) result_value%pid = pid
+    if (present(process_group)) result_value%process_group = process_group
+    result_value%continued = .true.
+    result_value%available = .true.
+  end function job_continue_result
 
   function jobs_backend_name() result(name)
     character(len=:), allocatable :: name

@@ -10,11 +10,14 @@ module fgof_jobs_types
   end type job_spec
 
   type, public :: job_result
+    integer :: pid = 0
+    integer :: process_group = 0
     integer :: exit_code = 0
     integer :: signal = 0
     logical :: exited = .false.
     logical :: signaled = .false.
     logical :: stopped = .false.
+    logical :: continued = .false.
     logical :: available = .false.
   end type job_result
 
@@ -25,9 +28,11 @@ module fgof_jobs_types
     integer :: process_group = 0
     logical :: configured = .false.
     logical :: running = .false.
+    logical :: stopped = .false.
     logical :: finished = .false.
     logical :: background = .false.
     logical :: owns_process = .false.
+    logical :: owns_process_group = .false.
     logical :: cleanup_needed = .false.
   end type job_handle
 
